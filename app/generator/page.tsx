@@ -1,11 +1,11 @@
-import { getPlayers } from "@/app/actions/player-actions";
+import { getPaidPlayers } from "@/app/actions/player-actions";
 import TeamGenerator from "@/components/team-generator";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default async function GeneratorPage() {
-    const players = await getPlayers();
+    const players = await getPaidPlayers();
 
     return (
         <main className="flex min-h-screen flex-col items-center p-4 md:p-12 bg-background">

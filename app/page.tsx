@@ -3,7 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Copy, Plus, Users, Trophy, Wallet, Bot } from "lucide-react";
 import Link from "next/link";
 
-export default function Home() {
+import { getDashboardStats } from "@/app/actions/dashboard-actions";
+
+export default async function Home() {
+    const stats = await getDashboardStats();
+
     return (
         <main className="flex min-h-screen flex-col items-center p-4 md:p-24 bg-background">
             {/* Header */}
@@ -74,8 +78,8 @@ export default function Home() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-white mb-2">24</div>
-                            <p className="text-xs text-slate-400 mb-4">4 Active • 2 Injured</p>
+                            <div className="text-3xl font-bold text-white mb-2">{stats.playerCount}</div>
+                            <p className="text-xs text-slate-400 mb-4">Active Squad Members</p>
                             <Link href="/players" className="w-full">
                                 <Button size="sm" variant="outline" className="w-full">Manage Squad</Button>
                             </Link>
@@ -89,8 +93,8 @@ export default function Home() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-emerald-400 mb-2">£120.00</div>
-                            <p className="text-xs text-slate-400 mb-4">Collected this week</p>
+                            <div className="text-3xl font-bold text-emerald-400 mb-2">£{stats.totalFunds.toFixed(2)}</div>
+                            <p className="text-xs text-slate-400 mb-4">Total Collected</p>
                             <Link href="/treasurer" className="w-full">
                                 <Button size="sm" variant="outline" className="w-full">View Ledger</Button>
                             </Link>

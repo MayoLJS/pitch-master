@@ -1,7 +1,11 @@
-import { Player } from "@/app/actions/player-actions";
+'use client'
+
+import { Player, deletePlayer } from "@/app/actions/player-actions";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, Sword, Activity, Hand } from "lucide-react";
+import { Shield, Sword, Activity, Hand, Trash2 } from "lucide-react";
+import { useTransition } from "react";
 
 const PositionIcon = ({ position }: { position: string }) => {
     switch (position) {
@@ -33,8 +37,23 @@ export default function PlayerList({ players }: { players: Player[] }) {
     return (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {players.map((player) => (
-                <Card key={player.id} className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors">
+                <Card key={player.id} className="bg-slate-900 border-slate-800 hover:border-slate-700 transition-colors relative group">
                     <CardContent className="p-4">
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6 text-slate-500 hover:text-red-500"
+                                onClick={async () => {
+                                    if (confirm('Delete player?')) {
+                                        await deletePlayer(player.id);
+                                    }
+                                }}
+                            >
+                                <Trash2 className="w-3 h-3" />
+                            </Button>
+                        </div>
+
                         <div className="flex justify-between items-start mb-2">
                             <div className={`text-[10px] font-bold px-2 py-1 rounded border flex items-center gap-1 ${PositionColor(player.position)}`}>
                                 <PositionIcon position={player.position} />
@@ -48,15 +67,15 @@ export default function PlayerList({ players }: { players: Player[] }) {
                         <div className="grid grid-cols-3 gap-2 text-center text-xs text-slate-400">
                             <div className="bg-slate-950 p-1 rounded">
                                 <div className="font-bold text-white">{player.matches_played}</div>
-                                <div>GMS</div>
+                                <div className="text-[10px]">match</div>
                             </div>
                             <div className="bg-slate-950 p-1 rounded">
                                 <div className="font-bold text-white">{player.goals_scored}</div>
-                                <div>GLS</div>
+                                <div className="text-[10px]">goal</div>
                             </div>
                             <div className="bg-slate-950 p-1 rounded">
                                 <div className="font-bold text-white">{player.assists_made}</div>
-                                <div>AST</div>
+                                <div className="text-[10px]">assist</div>
                             </div>
                         </div>
                     </CardContent>
