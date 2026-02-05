@@ -22,6 +22,11 @@ export default async function Home() {
                     </p>
                 </div>
                 <div className="mt-4 lg:mt-0 flex gap-4">
+                    <Link href="/league">
+                        <Button variant="outline" className="gap-2">
+                            <Trophy className="h-4 w-4 text-amber-500" /> League
+                        </Button>
+                    </Link>
                     <Link href="/media">
                         <Button variant="outline" className="gap-2">
                             <Bot className="h-4 w-4" /> Media Center

@@ -18,6 +18,7 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
     const [generatedTeams, setGeneratedTeams] = useState<Team[] | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
+    const [matchType, setMatchType] = useState<'FRIENDLY' | 'LEAGUE'>('FRIENDLY');
     const router = useRouter();
 
     const togglePlayer = (id: string) => {
@@ -94,7 +95,7 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
                             className="bg-green-600 hover:bg-green-700 text-white gap-2"
                             onClick={async () => {
                                 setIsStarting(true);
-                                const res = await startMatch(generatedTeams[0], generatedTeams[1]);
+                                const res = await startMatch(generatedTeams[0], generatedTeams[1], matchType);
                                 if (res.success) {
                                     router.push(`/match/${res.matchId}`);
                                 } else {
@@ -106,6 +107,29 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
                         >
                             <PlayCircle className="w-4 h-4" /> Start Match
                         </Button>
+                    </div>
+
+                    {/* Match Type Selector */}
+                    <div className="flex gap-4 bg-slate-900 p-4 rounded-lg border border-slate-800">
+                        <span className="text-sm font-bold text-slate-400 self-center">Match Mode:</span>
+                        <div className="flex gap-2">
+                            <Button
+                                size="sm"
+                                variant={matchType === 'FRIENDLY' ? 'default' : 'outline'}
+                                onClick={() => setMatchType('FRIENDLY')}
+                                className={matchType === 'FRIENDLY' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+                            >
+                                Friendly
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant={matchType === 'LEAGUE' ? 'default' : 'outline'}
+                                onClick={() => setMatchType('LEAGUE')}
+                                className={matchType === 'LEAGUE' ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                            >
+                                League
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

@@ -5,7 +5,7 @@ import { Team } from "@/lib/algorithms/team-balancer";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-export async function startMatch(teamA: Team, teamB: Team) {
+export async function startMatch(teamA: Team, teamB: Team, matchType: 'FRIENDLY' | 'LEAGUE') {
     const supabase = await createClient();
 
     // 1. Create Match
@@ -13,7 +13,7 @@ export async function startMatch(teamA: Team, teamB: Team) {
         .from('matches')
         .insert({
             status: 'LIVE',
-            type: 'FRIENDLY'
+            type: matchType
         })
         .select()
         .single();
