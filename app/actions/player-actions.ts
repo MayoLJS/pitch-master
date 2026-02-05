@@ -69,42 +69,45 @@ export async function deletePlayer(playerId: string) {
         return { error: "Failed to delete player" };
     }
 
-    // ... (existing exports)
+    revalidatePath("/players");
+    revalidatePath("/"); // Update dashboard count
+    return { success: true };
+}
 
-    export async function getPaidPlayers() {
-        const supabase = await createClient();
+export async function getPaidPlayers() {
+    const supabase = await createClient();
 
-        // Strategy: Get players who have a PAID ledger entry created in the last 24 hours.
-        const oneDayAgo = new Date();
-        oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+    // Strategy: Get players who have a PAID ledger entry created in the last 24 hours.
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-        // 1. Get IDs of paid players
-        const { data: paidEntries, error: ledgerError } = await supabase
-            .from('ledger')
-            .select('player_id')
-            .eq('status', 'PAID')
-            .gt('created_at', oneDayAgo.toISOString());
+    // 1. Get IDs of paid players
+    const { data: paidEntries, error: ledgerError } = await supabase
+        .from('ledger')
+        .select('player_id')
+        .eq('status', 'PAID')
+        .gt('created_at', oneDayAgo.toISOString());
 
-        if (ledgerError) {
-            console.error("Error fetching paid players:", ledgerError);
-            return [];
-        }
-
-        const paidPlayerIds = paidEntries.map(e => e.player_id);
-
-        if (paidPlayerIds.length === 0) return [];
-
-        // 2. Fetch Player details
-        const { data: players, error: playerError } = await supabase
-            .from('players')
-            .select('*')
-            .in('id', paidPlayerIds)
-            .order('name', { ascending: true });
-
-        if (playerError) {
-            console.error("Error fetching available players:", playerError);
-            return [];
-        }
-
-        return players as Player[];
+    if (ledgerError) {
+        console.error("Error fetching paid players:", ledgerError);
+        return [];
     }
+
+    const paidPlayerIds = paidEntries.map(e => e.player_id);
+
+    if (paidPlayerIds.length === 0) return [];
+
+    // 2. Fetch Player details
+    const { data: players, error: playerError } = await supabase
+        .from('players')
+        .select('*')
+        .in('id', paidPlayerIds)
+        .order('name', { ascending: true });
+
+    if (playerError) {
+        console.error("Error fetching available players:", playerError);
+        return [];
+    }
+
+    return players as Player[];
+}
