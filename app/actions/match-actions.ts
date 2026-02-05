@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export async function startMatch(teamA: Team, teamB: Team) {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // 1. Create Match
     const { data: match, error: matchError } = await supabase
@@ -62,7 +62,7 @@ export async function startMatch(teamA: Team, teamB: Team) {
 }
 
 export async function getMatchDetails(matchId: string) {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     const { data: match, error } = await supabase
         .from('matches')
@@ -88,7 +88,7 @@ export async function getMatchDetails(matchId: string) {
 }
 
 export async function recordGoal(matchId: string, teamId: string, playerId: string | null) {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // 1. Increment Team Score
     // We need to fetch current score first or use RPC? Simple fetch update is fine for MVP
@@ -122,7 +122,7 @@ export async function recordGoal(matchId: string, teamId: string, playerId: stri
 }
 
 export async function endMatch(matchId: string) {
-    const supabase = createClient();
+    const supabase = await createClient();
     await supabase.from('matches').update({ status: 'COMPLETED' }).eq('id', matchId);
 
     // Optionally update global stats "matches_played" here for all participants

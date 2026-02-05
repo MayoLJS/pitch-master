@@ -10,7 +10,7 @@ export type MatchReport = {
 };
 
 export async function getCompletedMatches() {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Fetch completed matches with full details
     const { data, error } = await supabase
@@ -39,7 +39,7 @@ export async function getCompletedMatches() {
 }
 
 export async function generateMatchReport(matchId: string) {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // 1. Fetch Match Data
     const { data: match, error } = await supabase

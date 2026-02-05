@@ -16,7 +16,7 @@ export type LedgerEntry = {
 };
 
 export async function getLedger() {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     // Fetch ledger with player names
     const { data, error } = await supabase
@@ -36,7 +36,7 @@ export async function getLedger() {
 }
 
 export async function addLedgerEntry(formData: FormData) {
-    const supabase = createClient();
+    const supabase = await createClient();
     const playerId = formData.get('playerId') as string;
     const amount = Number(formData.get('amount'));
     const notes = formData.get('notes') as string;
@@ -60,7 +60,7 @@ export async function addLedgerEntry(formData: FormData) {
 }
 
 export async function togglePaymentStatus(entryId: string, currentStatus: string) {
-    const supabase = createClient();
+    const supabase = await createClient();
     const newStatus = currentStatus === 'PAID' ? 'UNPAID' : 'PAID';
 
     await supabase

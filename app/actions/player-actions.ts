@@ -15,7 +15,7 @@ export type Player = {
 };
 
 export async function addPlayer(formData: FormData) {
-    const supabase = createClient();
+    const supabase = await createClient();
 
     const name = formData.get("name") as string;
     const position = formData.get("position") as string;
@@ -43,7 +43,7 @@ export async function addPlayer(formData: FormData) {
 }
 
 export async function getPlayers() {
-    const supabase = createClient();
+    const supabase = await createClient();
     const { data, error } = await supabase
         .from("players")
         .select("*")
