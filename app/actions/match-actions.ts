@@ -106,10 +106,13 @@ export async function submitMatchResult(matchId: string, teamAId: string, teamAS
         }
     }
 
-    // 4. Update Global Matches Played & Win Rates for ALL participants
-    // This is getting complex to do transactionally. Let's do a simple increment for MVP.
-    // Ideally we re-calculate from scratch for perfect consistency.
-    // For now: Increment matches_played for everyone involved.
+    // 4. Update Global Matches Played & Win Rates & Goals
+    // We need to fetch all players involved to update their stats correctly based on the result.
+
+    // Determine Match Outcome
+    const teamAWon = teamAScore > teamBScore;
+    const teamBWon = teamBScore > teamAScore;
+    const isDraw = teamAScore === teamBScore;
 
     const { data: allMembers } = await supabase
         .from('team_members')
@@ -119,9 +122,27 @@ export async function submitMatchResult(matchId: string, teamAId: string, teamAS
     if (allMembers) {
         for (const m of allMembers) {
             if (!m.player_id) continue;
-            const { data: p } = await supabase.from('players').select('matches_played').eq('id', m.player_id).single();
+
+            const isTeamA = m.team_id === teamAId;
+            const won = (isTeamA && teamAWon) || (!isTeamA && teamBWon);
+            // const draw = isDraw;
+
+            const { data: p } = await supabase.from('players').select('*').eq('id', m.player_id).single();
+
             if (p) {
-                await supabase.from('players').update({ matches_played: (p.matches_played || 0) + 1 }).eq('id', m.player_id);
+                const newMatches = (p.matches_played || 0) + 1;
+                // create or use existing 'wins' variable if we tracked it, but we only have win_rate.
+                // Recover estimated wins:
+                const oldWins = Math.round(((p.win_rate || 0) / 100) * (p.matches_played || 0));
+                const newWins = oldWins + (won ? 1 : 0);
+
+                // Calculate new Win Rate (percentage)
+                const newWinRate = newMatches > 0 ? (newWins / newMatches) * 100 : 0;
+
+                await supabase.from('players').update({
+                    matches_played: newMatches,
+                    win_rate: newWinRate,
+                }).eq('id', m.player_id);
             }
         }
     }
