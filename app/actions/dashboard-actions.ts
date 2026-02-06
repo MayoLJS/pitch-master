@@ -36,3 +36,29 @@ export async function getDashboardStats() {
         totalFunds
     };
 }
+
+export async function getScheduledFixtures() {
+    const supabase = await createClient();
+
+    const { data: fixtures, error } = await supabase
+        .from('matches')
+        .select(`
+            id,
+            status,
+            type,
+            played_at,
+            teams (
+                id,
+                name
+            )
+        `)
+        .eq('status', 'SCHEDULED')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching fixtures:", error);
+        return [];
+    }
+
+    return fixtures;
+}
