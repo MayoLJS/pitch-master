@@ -3,10 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Copy, Plus, Users, Trophy, Wallet, Bot } from "lucide-react";
 import Link from "next/link";
 
-import { getDashboardStats } from "@/app/actions/dashboard-actions";
+import { getDashboardStats, getScheduledFixtures } from "@/app/actions/dashboard-actions";
+import { Badge } from "@/components/ui/badge";
 
 export default async function Home() {
     const stats = await getDashboardStats();
+    const fixtures = await getScheduledFixtures();
 
     return (
         <main className="flex min-h-screen flex-col items-center p-4 md:p-24 bg-background">
@@ -43,34 +45,47 @@ export default async function Home() {
             {/* Dashboard Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
 
-                {/* Next Match Card */}
+                {/* Next Match Card / Fixtures List */}
                 <Card className="col-span-1 md:col-span-2 bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700">
                     <CardHeader>
                         <CardTitle className="text-white flex items-center justify-between">
-                            <span>Next Match</span>
-                            <span className="text-sm font-normal px-2 py-1 bg-green-500/20 text-green-400 rounded-full border border-green-500/30">
-                                Confirmed
-                            </span>
+                            <span>Upcoming Fixtures</span>
+                            <Badge variant="outline" className="text-slate-400 border-slate-600">
+                                {fixtures.length} Pending
+                            </Badge>
                         </CardTitle>
                         <CardDescription className="text-slate-400">
-                            Thursday 8:00 PM • Wembley Powerleague
+                            Select a fixture to enter results.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between p-4 bg-slate-950/50 rounded-lg border border-slate-800">
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-white">Team A</div>
-                                <div className="text-xs text-slate-500">AVG RATING 7.8</div>
+                        {fixtures.length === 0 ? (
+                            <div className="text-center py-6 text-slate-500 bg-slate-950/30 rounded-lg border border-slate-800/50">
+                                <p>No scheduled fixtures.</p>
+                                <p className="text-xs mt-1">Generate teams to create one.</p>
                             </div>
-                            <div className="text-3xl font-mono text-slate-600 font-bold">VS</div>
-                            <div className="text-center">
-                                <div className="text-2xl font-bold text-white">Team B</div>
-                                <div className="text-xs text-slate-500">AVG RATING 7.6</div>
+                        ) : (
+                            <div className="space-y-3">
+                                {fixtures.map((fixture: any) => (
+                                    <Link key={fixture.id} href={`/match/${fixture.id}`}>
+                                        <div className="flex items-center justify-between p-4 bg-slate-950/50 hover:bg-slate-950 hover:border-indigo-500/50 transition-all rounded-lg border border-slate-800 group cursor-pointer">
+                                            <div className="text-center w-1/3">
+                                                <div className="font-bold text-white text-sm md:text-base">{fixture.teams[0]?.name || 'Team A'}</div>
+                                            </div>
+                                            <div className="text-center w-1/3 flex flex-col items-center">
+                                                <div className="text-xs font-bold text-slate-500 mb-1">{fixture.type}</div>
+                                                <div className="bg-slate-800 text-slate-300 px-3 py-1 rounded text-xs group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                                    ENTER RESULT
+                                                </div>
+                                            </div>
+                                            <div className="text-center w-1/3">
+                                                <div className="font-bold text-white text-sm md:text-base">{fixture.teams[1]?.name || 'Team B'}</div>
+                                            </div>
+                                        </div>
+                                    </Link>
+                                ))}
                             </div>
-                        </div>
-                        <Button className="w-full text-slate-200" variant="secondary">
-                            View Lineups
-                        </Button>
+                        )}
                     </CardContent>
                 </Card>
 
