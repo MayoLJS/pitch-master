@@ -129,7 +129,8 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
                                 setIsStarting(true);
                                 const res = await startMatch(generatedTeams[0], generatedTeams[1], matchType);
                                 if (res.success) {
-                                    router.push(`/match/${res.matchId}`);
+                                    router.push('/');
+                                    router.refresh(); // Ensure the dashboard updates with the new fixture
                                 } else {
                                     alert("Failed to start match");
                                     setIsStarting(false);
