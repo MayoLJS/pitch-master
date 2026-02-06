@@ -8,7 +8,18 @@ import Image from "next/image";
 export default async function MatchPage({ params }: { params: { id: string } }) {
     const match = await getMatchDetails(params.id);
 
-    if (!match) return <div className="text-white p-10">Match not found</div>;
+    if (!match) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen text-white gap-4">
+                <h1 className="text-2xl font-bold text-red-500">Match Not Found</h1>
+                <p className="text-slate-400">Could not retrieve match details for ID:</p>
+                <code className="bg-slate-900 p-2 rounded text-xs">{params.id}</code>
+                <Button variant="outline" asChild>
+                    <a href="/generator">Go Back</a>
+                </Button>
+            </div>
+        );
+    }
 
     const teamA = match.teams[0];
     const teamB = match.teams[1];

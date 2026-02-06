@@ -19,6 +19,7 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
     const [isGenerating, setIsGenerating] = useState(false);
     const [isStarting, setIsStarting] = useState(false);
     const [matchType, setMatchType] = useState<'FRIENDLY' | 'LEAGUE'>('FRIENDLY');
+    const [teamSize, setTeamSize] = useState(5);
     const router = useRouter();
 
     const togglePlayer = (id: string) => {
@@ -34,7 +35,15 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
     const handleGenerate = async () => {
         setIsGenerating(true);
         const selectedPlayers = allPlayers.filter(p => selectedPlayerIds.has(p.id));
-        const teams = await generateTeamsAction(selectedPlayers, numTeams);
+
+        // Calculate numTeams based on target size
+        // If we have 13 players and size 5 -> 13/5 = 2.6 -> 3 teams.
+        // User said: "if extra, add to one of the teams". 
+        // This usually implies maximizing full teams or just splitting?
+        // Let's use standard rounding behavior but ensure at least 2 teams.
+        const calculatedNumTeams = Math.max(2, Math.round(selectedPlayers.length / teamSize));
+
+        const teams = await generateTeamsAction(selectedPlayers, calculatedNumTeams);
         setGeneratedTeams(teams);
         setIsGenerating(false);
     };
@@ -50,19 +59,42 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
     return (
         <div className="space-y-8">
             <Card className="bg-slate-900 border-slate-800">
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle className="text-white flex items-center gap-2">
-                        <Users className="w-5 h-5 text-indigo-400" />
-                        Select Players ({selectedPlayerIds.size})
-                    </CardTitle>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={selectAll}>
-                            {selectedPlayerIds.size === allPlayers.length ? "Deselect All" : "Select All"}
-                        </Button>
+                <CardHeader className="flex flex-col gap-4">
+                    <div className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-white flex items-center gap-2">
+                            <Users className="w-5 h-5 text-indigo-400" />
+                            Select Players ({selectedPlayerIds.size})
+                        </CardTitle>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={selectAll}>
+                                {selectedPlayerIds.size === allPlayers.length ? "Deselect All" : "Select All"}
+                            </Button>
+                        </div>
+                    </div>
+
+                    {/* Configuration Row */}
+                    <div className="flex flex-wrap items-center gap-4 bg-slate-950/50 p-3 rounded-lg border border-slate-800">
+                        <div className="flex items-center gap-2">
+                            <label className="text-sm text-slate-400 whitespace-nowrap">Players per Team:</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="20"
+                                value={teamSize}
+                                onChange={(e) => setTeamSize(parseInt(e.target.value) || 5)}
+                                className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-sm"
+                            />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-slate-500">
+                                Result: <span className="text-indigo-400 font-bold">{Math.max(2, Math.round(selectedPlayerIds.size / teamSize))}</span> Teams
+                            </span>
+                        </div>
+
                         <Button
                             onClick={handleGenerate}
                             disabled={selectedPlayerIds.size < 2 || isGenerating}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                            className="ml-auto bg-indigo-600 hover:bg-indigo-700 text-white"
                         >
                             {isGenerating ? "Balancing..." : "Generate Teams"}
                         </Button>
