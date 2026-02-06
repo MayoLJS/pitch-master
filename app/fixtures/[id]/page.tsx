@@ -71,17 +71,11 @@ export default function FixturePage() {
     const handleSubmit = async () => {
         setSubmitting(true);
         try {
-            // Aggregate stats for submission
-            // We need to convert the array of rows into a clean structure for the server action
-            // The server action currently expects a generic scorers object, we might need to overhaul it.
-            // But let's verify what the user asked: "Insert the stats into match_events or team_members."
-            // We'll update the action to handle this rich data.
-
             // Basic validation
             const totalGoalsA = teamAStats.reduce((sum, s) => sum + (s.goals || 0), 0);
             const totalGoalsB = teamBStats.reduce((sum, s) => sum + (s.goals || 0), 0);
 
-            // Optional: Warn if goals don't match score (but don't block, maybe own goals etc)
+            // Optional: Warn if goals don't match score
             if (totalGoalsA !== teamAScore || totalGoalsB !== teamBScore) {
                 if (!confirm(`Warning: Total individual goals (${totalGoalsA}-${totalGoalsB}) do not match the final score (${teamAScore}-${teamBScore}). Continue?`)) {
                     setSubmitting(false);
@@ -101,7 +95,6 @@ export default function FixturePage() {
             const res = await submitMatchResult(payload);
 
             if (res.success) {
-                // Redirect logic is in server action, but if it returns success:
                 router.push('/league');
             } else {
                 alert(`Error: ${res.error}`);
