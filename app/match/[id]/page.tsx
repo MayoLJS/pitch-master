@@ -8,8 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Trophy, Calendar, Users, Save } from "lucide-react";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 
-export default function MatchPage({ params }: { params: { id: string } }) {
+export default function MatchPage() {
+    const params = useParams();
+    const id = params.id as string;
+
     const [match, setMatch] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [teamAScore, setTeamAScore] = useState(0);
@@ -18,11 +22,12 @@ export default function MatchPage({ params }: { params: { id: string } }) {
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
-        getMatchDetails(params.id).then(data => {
+        if (!id) return;
+        getMatchDetails(id).then(data => {
             setMatch(data);
             setLoading(false);
         });
-    }, [params.id]);
+    }, [id]);
 
     if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">Loading Fixture...</div>;
 
@@ -31,7 +36,7 @@ export default function MatchPage({ params }: { params: { id: string } }) {
             <div className="flex flex-col items-center justify-center min-h-screen text-white gap-4 bg-slate-950">
                 <h1 className="text-2xl font-bold text-red-500">Match Not Found</h1>
                 <p className="text-slate-400">Could not retrieve match details for ID:</p>
-                <code className="bg-slate-900 p-2 rounded text-xs">{params.id}</code>
+                <code className="bg-slate-900 p-2 rounded text-xs">{id}</code>
                 <Button variant="outline" asChild>
                     <Link href="/">Back to Dashboard</Link>
                 </Button>
