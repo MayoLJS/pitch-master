@@ -15,12 +15,32 @@ const TARGET_RATIO = {
     ATT: 1
 };
 
-export function balanceTeams(players: Player[], numTeams: number = 2): Team[] {
-    // 1. Sort players by position buckets
-    const goalkeepers = players.filter(p => p.position === 'GK');
-    const defenders = players.filter(p => p.position === 'DEF');
-    const midfielders = players.filter(p => p.position === 'MID');
-    const attackers = players.filter(p => p.position === 'ATT');
+export function balanceTeams(players: Player[], numTeams: number = 2, captains: Player[] = []): Team[] {
+    // 1. Initialize Teams
+    const teams: Team[] = Array.from({ length: numTeams }, (_, i) => ({
+        id: i + 1,
+        // Captain name logic: If captains exist, name team after them
+        name: captains[i] ? `Team ${captains[i].name.split(' ')[0]}` : `Team ${i + 1}`,
+        players: [],
+        averageRating: 0
+    }));
+
+    // 2. Pre-assign Captains
+    const playersToDistribute = [...players];
+    captains.forEach((cap, i) => {
+        if (i < numTeams) {
+            teams[i].players.push(cap);
+            // Remove captain from pool to distribute
+            const idx = playersToDistribute.findIndex(p => p.id === cap.id);
+            if (idx > -1) playersToDistribute.splice(idx, 1);
+        }
+    });
+
+    // 3. Sort remaining players by position buckets
+    const goalkeepers = playersToDistribute.filter(p => p.position === 'GK');
+    const defenders = playersToDistribute.filter(p => p.position === 'DEF');
+    const midfielders = playersToDistribute.filter(p => p.position === 'MID');
+    const attackers = playersToDistribute.filter(p => p.position === 'ATT');
 
     // Shuffle helper
     const shuffle = <T>(array: T[]) => array.sort(() => Math.random() - 0.5);
@@ -30,17 +50,12 @@ export function balanceTeams(players: Player[], numTeams: number = 2): Team[] {
     const shuffledMID = shuffle([...midfielders]);
     const shuffledATT = shuffle([...attackers]);
 
-    // Initialize Teams
-    const teams: Team[] = Array.from({ length: numTeams }, (_, i) => ({
-        id: i + 1,
-        name: `Team ${i + 1}`,
-        players: [],
-        averageRating: 0
-    }));
-
     // Distribute Logic via "Snake Draft" or Round Robin for each position to ensure even spread
     // We prioritize GK -> DEF -> MID -> ATT
 
+    // Start filling from index 0 or random?
+    // Since captains are already placed, we should check current counts.
+    // Assuming 1 captain per team, counts are equal (1).
     let currentTeamIndex = 0;
 
     const distribute = (pool: Player[]) => {
@@ -64,6 +79,9 @@ export function balanceTeams(players: Player[], numTeams: number = 2): Team[] {
     calculateRatings(teams);
 
     // Optimization Step: Swap players to balance ratings
+    // NOTE: We must NOT swap captains.
+    const captainIds = new Set(captains.map(c => c.id));
+
     // Try to swap players of SAME position between teams if it reduces rating variance
     // Run this for a few iterations
     for (let i = 0; i < 100; i++) {
@@ -76,8 +94,9 @@ export function balanceTeams(players: Player[], numTeams: number = 2): Team[] {
         const positions = ['DEF', 'MID', 'ATT', 'GK']; // GK usually shouldn't swap if 1 per team, but if unbalanced...
         const pos = positions[Math.floor(Math.random() * positions.length)];
 
-        const playersA = teamA.players.filter(p => p.position === pos);
-        const playersB = teamB.players.filter(p => p.position === pos);
+        // Candidate players (EXCLUDING CAPTAINS)
+        const playersA = teamA.players.filter(p => p.position === pos && !captainIds.has(p.id));
+        const playersB = teamB.players.filter(p => p.position === pos && !captainIds.has(p.id));
 
         if (playersA.length === 0 || playersB.length === 0) continue;
 
