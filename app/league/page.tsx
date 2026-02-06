@@ -45,13 +45,14 @@ export default async function LeaguePage() {
                                         <th className="p-4 text-center">D</th>
                                         <th className="p-4 text-center">L</th>
                                         <th className="p-4 text-center">G</th>
+                                        <th className="p-4 text-center">GD</th>
                                         <th className="p-4 text-center font-bold text-white rounded-tr-lg">Pts</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-800">
                                     {standings.length === 0 ? (
                                         <tr>
-                                            <td colSpan={8} className="p-8 text-center text-slate-500">
+                                            <td colSpan={9} className="p-8 text-center text-slate-500">
                                                 No league matches played yet.
                                             </td>
                                         </tr>
@@ -70,6 +71,9 @@ export default async function LeaguePage() {
                                                 <td className="p-4 text-center text-slate-400">{player.drawn}</td>
                                                 <td className="p-4 text-center text-red-400">{player.lost}</td>
                                                 <td className="p-4 text-center text-slate-400">{player.goals}</td>
+                                                <td className={`p-4 text-center font-bold ${player.goalDifference > 0 ? 'text-green-500' : (player.goalDifference < 0 ? 'text-red-500' : 'text-slate-500')}`}>
+                                                    {player.goalDifference > 0 ? '+' : ''}{player.goalDifference}
+                                                </td>
                                                 <td className="p-4 text-center font-black text-amber-500 text-lg">{player.points}</td>
                                             </tr>
                                         ))

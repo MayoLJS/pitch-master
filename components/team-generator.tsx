@@ -23,7 +23,7 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
     const [matchType, setMatchType] = useState<'FRIENDLY' | 'LEAGUE'>('FRIENDLY');
     // Team Size is less relevant now if captains dictate team count, but kept for non-captain flows if any?
     // Current flow enforces captains.
-    const [teamSize, setTeamSize] = useState(5);
+    const [teamSize, setTeamSize] = useState(2);
     const router = useRouter();
 
     const togglePlayer = (id: string) => {
@@ -59,8 +59,8 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
         const selectedPlayers = allPlayers.filter(p => selectedPlayerIds.has(p.id));
         const captains = allPlayers.filter(p => captainIds.has(p.id));
 
-        // Number of teams is strictly the number of captains
-        const calculatedNumTeams = captains.length;
+        // Number of teams is set by user input
+        const calculatedNumTeams = teamSize;
 
         if (calculatedNumTeams < 2) {
             alert("Please select at least 2 captains.");
@@ -91,7 +91,7 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
                         <div className="flex flex-row items-center justify-between">
                             <CardTitle className="text-white flex items-center gap-2">
                                 <Users className="w-5 h-5 text-indigo-400" />
-                                {step === 'SELECT_PLAYERS' ? `Select Players (${selectedPlayerIds.size})` : `Select Captains (${captainIds.size} Teams)`}
+                                {step === 'SELECT_PLAYERS' ? `Select Players (${selectedPlayerIds.size})` : `Step 2: Configure Teams`}
                             </CardTitle>
                             {step === 'SELECT_PLAYERS' && (
                                 <div className="flex gap-2">
@@ -103,7 +103,7 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
                                         disabled={selectedPlayerIds.size < 2}
                                         onClick={() => setStep('SELECT_CAPTAINS')}
                                     >
-                                        Next: Captains
+                                        Next: Setup Teams
                                     </Button>
                                 </div>
                             )}
@@ -112,7 +112,7 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
                                     <Button variant="ghost" onClick={() => setStep('SELECT_PLAYERS')} className="text-slate-400">Back</Button>
                                     <Button
                                         className="bg-green-600 hover:bg-green-700 text-white"
-                                        disabled={captainIds.size < 2}
+                                        disabled={captainIds.size !== teamSize}
                                         onClick={handleGenerate}
                                     >
                                         {isGenerating ? "Balancing..." : "Generate Teams"}
@@ -123,18 +123,47 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
 
                         {step === 'SELECT_PLAYERS' && (
                             <div className="flex flex-wrap items-center gap-4 bg-slate-950/50 p-3 rounded-lg border border-slate-800">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm text-slate-500">
-                                        Selected: <span className="text-white font-bold">{selectedPlayerIds.size}</span>
-                                    </span>
-                                </div>
-                                {/* Removed Team Size Input since Captains dictate teams now */}
+                                <span className="text-sm text-slate-500">
+                                    Selected: <span className="text-white font-bold">{selectedPlayerIds.size}</span>
+                                </span>
                             </div>
                         )}
 
                         {step === 'SELECT_CAPTAINS' && (
-                            <div className="bg-indigo-900/20 p-3 rounded-lg border border-indigo-500/30 text-indigo-300 text-sm">
-                                Select captains. One captain = One team. Select at least 2.
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-4 bg-slate-950/50 p-4 rounded-lg border border-slate-800">
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-sm font-bold text-slate-300">Number of Teams</label>
+                                        <div className="flex items-center gap-3">
+                                            <Button
+                                                size="sm" variant="outline"
+                                                onClick={() => {
+                                                    const newSize = Math.max(2, teamSize - 1);
+                                                    setTeamSize(newSize);
+                                                    // Prune captains if needed
+                                                    if (captainIds.size > newSize) {
+                                                        const newCaps = Array.from(captainIds).slice(0, newSize);
+                                                        setCaptainIds(new Set(newCaps));
+                                                    }
+                                                }}
+                                            >-</Button>
+                                            <span className="text-xl font-bold text-white w-8 text-center">{teamSize}</span>
+                                            <Button
+                                                size="sm" variant="outline"
+                                                onClick={() => setTeamSize(Math.min(4, teamSize + 1))} // Max 4 teams for now?
+                                            >+</Button>
+                                        </div>
+                                    </div>
+                                    <div className="h-10 w-px bg-slate-700 mx-2"></div>
+                                    <div className="flex flex-col justify-center">
+                                        <p className="text-sm text-slate-400">
+                                            Select <span className={captainIds.size === teamSize ? "text-green-400 font-bold" : "text-amber-400 font-bold"}>{teamSize}</span> Captains
+                                        </p>
+                                        <p className="text-xs text-slate-500">
+                                            Current: {captainIds.size} selected
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </CardHeader>
@@ -149,10 +178,18 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
                                 return (
                                     <div
                                         key={player.id}
-                                        onClick={() => step === 'SELECT_PLAYERS' ? togglePlayer(player.id) : toggleCaptain(player.id)}
+                                        onClick={() => {
+                                            if (step === 'SELECT_CAPTAINS') {
+                                                // Only allow selecting up to teamSize captains
+                                                if (!isCaptain && captainIds.size >= teamSize) return;
+                                                toggleCaptain(player.id);
+                                            } else {
+                                                togglePlayer(player.id);
+                                            }
+                                        }}
                                         className={`cursor-pointer border rounded-lg p-3 transition-all flex items-center justify-between 
                                             ${step === 'SELECT_CAPTAINS'
-                                                ? (isCaptain ? 'bg-amber-900/20 border-amber-500 ring-1 ring-amber-500' : 'bg-slate-950 border-slate-800 hover:border-slate-600')
+                                                ? (isCaptain ? 'bg-amber-900/20 border-amber-500 ring-1 ring-amber-500' : (captainIds.size >= teamSize ? 'opacity-50 cursor-not-allowed bg-slate-950 border-slate-800' : 'bg-slate-950 border-slate-800 hover:border-slate-600'))
                                                 : (isSelected ? 'bg-indigo-900/20 border-indigo-500' : 'bg-slate-950 border-slate-800 hover:border-slate-700')
                                             }`}
                                     >
@@ -180,8 +217,8 @@ export default function TeamGenerator({ allPlayers }: { allPlayers: Player[] }) 
                             onClick={async () => {
                                 setIsStarting(true);
                                 const res = await startMatch(generatedTeams[0], generatedTeams[1], matchType);
-                                if (res.success) {
-                                    router.push('/');
+                                if (res.success && res.matchId) {
+                                    router.push(`/fixtures/${res.matchId}`); // Updated redirect
                                     router.refresh();
                                 } else {
                                     alert("Failed to start match");
