@@ -69,88 +69,92 @@ interface MatchResultPayload {
 }
 
 export async function submitMatchResult(payload: MatchResultPayload) {
-    const supabase = await createClient();
-    const { matchId, teamAId, teamAScore, teamBId, teamBScore, stats } = payload;
+    try {
+        const supabase = await createClient();
+        const { matchId, teamAId, teamAScore, teamBId, teamBScore, stats } = payload;
 
-    // 1. Update Match Status
-    const { error: matchError } = await supabase
-        .from('matches')
-        .update({ status: 'COMPLETED', played_at: new Date().toISOString() })
-        .eq('id', matchId);
+        // 1. Update Match Status
+        const { error: matchError } = await supabase
+            .from('matches')
+            .update({ status: 'COMPLETED', played_at: new Date().toISOString() })
+            .eq('id', matchId);
 
-    if (matchError) throw new Error(`Failed to update match status: ${matchError.message}`);
+        if (matchError) return { success: false, error: `Match Update Error: ${matchError.message}` };
 
-    // 2. Update Team Scores
-    await supabase.from('teams').update({ score: teamAScore }).eq('id', teamAId);
-    await supabase.from('teams').update({ score: teamBScore }).eq('id', teamBId);
+        // 2. Update Team Scores
+        await supabase.from('teams').update({ score: teamAScore }).eq('id', teamAId);
+        await supabase.from('teams').update({ score: teamBScore }).eq('id', teamBId);
 
-    // 3. Process Individual Stats (Goals/Assists)
-    // We fetch all team members for this match to map player_id -> member_id
-    const { data: members } = await supabase
-        .from('team_members')
-        .select('id, player_id, team_id')
-        .in('team_id', [teamAId, teamBId]);
+        // 3. Process Individual Stats (Goals/Assists)
+        const { data: members } = await supabase
+            .from('team_members')
+            .select('id, player_id, team_id')
+            .in('team_id', [teamAId, teamBId]);
 
-    if (members) {
-        for (const stat of stats) {
-            if (!stat.playerId) continue;
-            const member = members.find(m => m.player_id === stat.playerId);
-            if (member) {
-                // Update specific match stats
-                await supabase.from('team_members').update({
-                    stats_goals: stat.goals,
-                    stats_assists: stat.assists
-                }).eq('id', member.id);
+        if (members) {
+            for (const stat of stats) {
+                if (!stat.playerId) continue;
+                const member = members.find(m => m.player_id === stat.playerId);
+                if (member) {
+                    await supabase.from('team_members').update({
+                        stats_goals: stat.goals,
+                        stats_assists: stat.assists
+                    }).eq('id', member.id);
 
-                // Update cumulative player stats (Goals/Assists)
-                // We use an RPC or just raw increment if concurrency isn't huge.
-                // For safety, let's fetch current and increment.
-                const { data: p } = await supabase.from('players').select('goals_scored, assists_made').eq('id', stat.playerId).single();
-                if (p) {
-                    await supabase.from('players').update({
-                        goals_scored: (p.goals_scored || 0) + stat.goals,
-                        assists_made: (p.assists_made || 0) + stat.assists
-                    }).eq('id', stat.playerId);
+                    const { data: p } = await supabase.from('players').select('goals_scored, assists_made').eq('id', stat.playerId).single();
+                    if (p) {
+                        await supabase.from('players').update({
+                            goals_scored: (p.goals_scored || 0) + stat.goals,
+                            assists_made: (p.assists_made || 0) + stat.assists
+                        }).eq('id', stat.playerId);
+                    }
                 }
             }
         }
+
+        // 4. Update League Table Stats
+        const teamAGoalDiff = teamAScore - teamBScore;
+        const teamBGoalDiff = teamBScore - teamAScore;
+
+        const teamAMembers = members?.filter((m: any) => m.team_id === teamAId) || [];
+        for (const m of teamAMembers) {
+            if (!m.player_id) continue;
+            try {
+                await updatePlayerLeagueStats(supabase, m.player_id, {
+                    win: teamAScore > teamBScore,
+                    draw: teamAScore === teamBScore,
+                    loss: teamAScore < teamBScore,
+                    gd: teamAGoalDiff
+                });
+            } catch (err: any) {
+                console.error("League Stats Update Error:", err);
+                return { success: false, error: `League Stats Error: ${err.message || 'Unknown error'}` };
+            }
+        }
+
+        const teamBMembers = members?.filter((m: any) => m.team_id === teamBId) || [];
+        for (const m of teamBMembers) {
+            if (!m.player_id) continue;
+            try {
+                await updatePlayerLeagueStats(supabase, m.player_id, {
+                    win: teamBScore > teamAScore,
+                    draw: teamBScore === teamAScore,
+                    loss: teamBScore < teamAScore,
+                    gd: teamBGoalDiff
+                });
+            } catch (err: any) {
+                console.error("League Stats Update Error:", err);
+                return { success: false, error: `League Stats Error: ${err.message || 'Unknown error'}` };
+            }
+        }
+
+        revalidatePath('/');
+        revalidatePath('/league');
+        return { success: true };
+    } catch (e: any) {
+        console.error("Submit Match Result Fatal Error:", e);
+        return { success: false, error: e.message };
     }
-
-    // 4. Update League Table Stats (Points, Wins, etc.)
-    // Logic:
-    // Win = 3pts, Draw = 1pt, Loss = 0pts
-    // GD = TeamGoals - OpponentGoals
-
-    const teamAGoalDiff = teamAScore - teamBScore;
-    const teamBGoalDiff = teamBScore - teamAScore;
-
-    // Process Team A Players
-    const teamAMembers = members?.filter((m: any) => m.team_id === teamAId) || [];
-    for (const m of teamAMembers) {
-        if (!m.player_id) continue;
-        await updatePlayerLeagueStats(supabase, m.player_id, {
-            win: teamAScore > teamBScore,
-            draw: teamAScore === teamBScore,
-            loss: teamAScore < teamBScore,
-            gd: teamAGoalDiff
-        });
-    }
-
-    // Process Team B Players
-    const teamBMembers = members?.filter((m: any) => m.team_id === teamBId) || [];
-    for (const m of teamBMembers) {
-        if (!m.player_id) continue;
-        await updatePlayerLeagueStats(supabase, m.player_id, {
-            win: teamBScore > teamAScore,
-            draw: teamBScore === teamAScore,
-            loss: teamBScore < teamAScore,
-            gd: teamBGoalDiff
-        });
-    }
-
-    revalidatePath('/');
-    revalidatePath('/league');
-    redirect('/league');
 }
 
 async function updatePlayerLeagueStats(supabase: any, playerId: string, result: { win: boolean, draw: boolean, loss: boolean, gd: number }) {

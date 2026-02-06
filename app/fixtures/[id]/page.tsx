@@ -98,11 +98,18 @@ export default function FixturePage() {
                 stats: [...teamAStats, ...teamBStats].filter(s => s.playerId) // Filter empty rows
             };
 
-            await submitMatchResult(payload);
-            // Action handles redirect
-        } catch (error) {
+            const res = await submitMatchResult(payload);
+
+            if (res.success) {
+                // Redirect logic is in server action, but if it returns success:
+                router.push('/league');
+            } else {
+                alert(`Error: ${res.error}`);
+                setSubmitting(false);
+            }
+        } catch (error: any) {
             console.error(error);
-            alert("Failed to save result");
+            alert(`Unexpected Error: ${error.message || 'Failed to save result'}`);
             setSubmitting(false);
         }
     };
